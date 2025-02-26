@@ -4,61 +4,81 @@ interface ResponseSchema {
     answer: string;
 }
 
+interface SessionMetadata {
+    createdAt: Date;
+    topic: string;
+    expertise: string;
+    name: string;
+    systemPrompt: string;
+    responses: ResponseSchema[];
+}
+
 export class InterviewSession {
     private static instance: InterviewSession | null = null;
-    private sessionStarted: boolean = false;
-    private sessionEnded: boolean = false;
-    private topic: string = '';
-    private expertise: string = '';
-    private sessionData: Map<string, ResponseSchema[]> = new Map();
-    private response: ResponseSchema;
-    private sessionId: string;
+    private sessions: Map<string, SessionMetadata> = new Map();
 
-    private constructor(sessionId: string) {
-        this.sessionId = sessionId;
-        this.response = {
-            questionNumber: 0,
-            question: "",
-            answer: ""
-        };
-    }
+    private constructor() {}
 
-    public static getInstance(sessionId: string): InterviewSession {
-        if (!InterviewSession.instance || InterviewSession.instance.sessionId !== sessionId) {
-            InterviewSession.instance = new InterviewSession(sessionId);
+    public static getInstance(): InterviewSession {
+        if (!InterviewSession.instance) {
+            InterviewSession.instance = new InterviewSession();
         }
         return InterviewSession.instance;
     }
 
-    public startSession(topic: string, expertise: string, name: string, sessionId: string) {
-        this.topic = topic;
-        this.expertise = expertise;
-        this.sessionStarted = true;
-        this.sessionId = sessionId;
-        this.sessionData.set(sessionId, []);
-        return this.sessionId;
+    public startSession(topic: string, expertise: string, name: string, sessionId: string, systemPrompt: string): string {
+        const sessionData: SessionMetadata = {
+            createdAt: new Date(),
+            topic,
+            expertise,
+            name,
+            systemPrompt,
+            responses: []
+        };
+        
+        this.sessions.set(sessionId, sessionData);
+        return sessionId;
     }
 
-    public addToCache(response: ResponseSchema) {
-        const sessionResponses = this.sessionData.get(this.sessionId) || [];
-        sessionResponses.push(response);
-        this.sessionData.set(this.sessionId, sessionResponses);
-        this.response = response;
+    public addToCache(sessionId: string, response: ResponseSchema): void {
+        const session = this.getSession(sessionId);
+        if (!session) throw new Error('Session not found');
+
+        session.responses.push(response);
+        this.sessions.set(sessionId, session);
     }
 
-    public getSessionResponses(): ResponseSchema[] {
-        return this.sessionData.get(this.sessionId) || [];
+    public getSessionResponses(sessionId: string): {responses: ResponseSchema[], systemPrompt: string} {
+        const session = this.getSession(sessionId);
+        return {responses: session?.responses || [], systemPrompt: session?.systemPrompt || ""};
     }
 
-    public clearSession() {
-        this.sessionData.delete(this.sessionId);
+    public updateSessionResponses(sessionId: string, response: ResponseSchema[]): void {
+        const session = this.getSession(sessionId);
+        if (!session) throw new Error('Session not found');
+
+        session.responses = response;
+        this.sessions.set(sessionId, session);
     }
 
-    public getCurrentResponse(): ResponseSchema {
-        return this.response;
+    public clearSession(sessionId: string): void {
+        this.sessions.delete(sessionId);
     }
 
-    public getSessionId(): string {
-        return this.sessionId;
+    public isSessionActive(sessionId: string): boolean {
+        return this.sessions.has(sessionId);
+    }
+
+    private getSession(sessionId: string): SessionMetadata | undefined {
+        return this.sessions.get(sessionId);
+    }
+
+    public getSessionMetadata(sessionId: string): SessionMetadata | undefined {
+        return this.getSession(sessionId);
+    }
+
+    // Optional: Get all active sessions (useful for debugging or admin purposes)
+    public getAllSessions(): Map<string, SessionMetadata> {
+        return new Map(this.sessions);
     }
 }

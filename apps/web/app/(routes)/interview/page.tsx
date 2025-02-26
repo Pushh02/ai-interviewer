@@ -37,7 +37,7 @@ const Page = () => {
       return data;
     },
     onSuccess: (data) => {
-        console.log(data)
+      
       router.push(`/interview/${data.sessionId}`);
     },
     onError: (error) => {
@@ -120,10 +120,10 @@ const Page = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={!selectedTopic || !selectedExpertise || !name.trim()}
+            disabled={!selectedTopic || !selectedExpertise || !name.trim() || startInterviewMutation.isPending}
             className="w-full py-4 px-6 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-lg transition-all duration-200 mt-8"
           >
-            Start Interview
+            {startInterviewMutation.isPending ? "Starting Interview..." : "Start Interview"}
           </button>
         </form>
       </div>
